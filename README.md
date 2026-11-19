@@ -2,6 +2,8 @@
 
 A free, private, GST-ready invoice generator. It runs entirely in your browser: there is no server, no account and no watermark, and your client details never leave your device.
 
+**Live: [invoice.freelysta.com](https://invoice.freelysta.com)**
+
 ![Invoice generator screenshot](docs/screenshot.png)
 
 ## Features

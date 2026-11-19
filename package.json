@@ -9,7 +9,7 @@
     "type": "git",
     "url": "git+https://github.com/myainor/invoice-generator.git"
   },
-  "homepage": "https://github.com/myainor/invoice-generator#readme",
+  "homepage": "https://invoice.freelysta.com",
   "bugs": "https://github.com/myainor/invoice-generator/issues",
   "keywords": ["invoice", "invoice-generator", "gst", "react", "vite", "pdf", "freelancer"],
   "scripts": {
