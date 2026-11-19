@@ -1,0 +1,444 @@
+/* =========================================================
+   Invoice generator
+
+   Two layers:
+     .ig-*   the tool chrome (form + preview)
+     .igd-*  the invoice sheet itself, print-first white A4
+   ========================================================= */
+
+:root {
+  --bg: #ffffff;
+  --bg2: #f7f8fa;
+  --ink: #0b0b0c;
+  --ink2: #5a6069;
+  --ink3: #6b7280;
+  --line: #e7e8eb;
+  --line2: #d6d8dd;
+  --accent: #3b82f6;
+  --accent-ink: #2563eb;
+  --accent-soft: #eff5ff;
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg2);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; }
+a { color: inherit; }
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+.app-wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+.app-bar { background: var(--bg); border-bottom: 1px solid var(--line); }
+.app-bar-in { display: flex; align-items: center; justify-content: space-between; height: 58px; }
+.app-title { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: -0.01em; }
+.app-title svg { color: var(--accent); }
+.app-link { font-size: 14px; color: var(--ink2); text-decoration: none; }
+.app-link:hover { color: var(--ink); }
+
+.app-foot { border-top: 1px solid var(--line); background: var(--bg); padding: 22px 0; font-size: 13.5px; color: var(--ink3); text-align: center; }
+.app-foot a { color: var(--accent-ink); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 44px; padding: 0 20px; border-radius: 999px;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform .18s ease, background-color .18s ease, border-color .18s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent-ink); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line2); }
+.btn-ghost:hover { border-color: var(--ink); }
+
+.ig-hero { padding: 56px 0 28px; text-align: center; }
+.ig-hero h1 { font-family: var(--serif); font-weight: 450; font-size: clamp(36px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.025em; margin: 0; }
+.ig-hero p { color: var(--ink2); font-size: 17px; max-width: 54ch; margin: 16px auto 0; }
+.ig-hero-points {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 10px 22px; margin: 24px 0 0; padding: 0; list-style: none;
+}
+.ig-hero-points li { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: var(--ink2); }
+.ig-hero-points svg { color: var(--accent); flex: none; }
+
+/* ---------- tool shell ---------- */
+.ig-main { padding: 12px 0 96px; }
+
+.ig-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* ---------- form side ---------- */
+.ig-form { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.ig-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.ig-panel-h {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink3);
+  margin: 0 0 16px;
+}
+.ig-panel-h svg { color: var(--accent); }
+
+.ig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ig-grid.one { grid-template-columns: 1fr; }
+.ig-span { grid-column: 1 / -1; }
+
+.ig-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.ig-label {
+  font-size: 12px; font-weight: 600;
+  color: var(--ink2); letter-spacing: -0.005em;
+}
+
+.ig-input,
+.ig-select,
+.ig-textarea {
+  width: 100%;
+  font-family: inherit; font-size: 14.5px; color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.ig-input:focus,
+.ig-select:focus,
+.ig-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.ig-textarea { resize: vertical; min-height: 74px; line-height: 1.5; }
+.ig-input::placeholder, .ig-textarea::placeholder { color: var(--ink3); }
+
+.ig-hint { font-size: 12px; color: var(--ink3); }
+.ig-hint.warn { color: #b45309; }
+
+/* logo picker */
+.ig-logo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ig-logo-prev {
+  width: 64px; height: 64px; border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex: none;
+}
+.ig-logo-prev img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.ig-logo-prev svg { color: var(--ink3); }
+
+.ig-file-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 14px; border-radius: 9px;
+  border: 1px solid var(--line2); background: #fff;
+  font-size: 13.5px; font-weight: 600; color: var(--ink);
+  cursor: pointer;
+}
+.ig-file-btn:hover { border-color: var(--ink); }
+.ig-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.ig-color {
+  width: 44px; height: 38px; padding: 2px;
+  border: 1px solid var(--line2); border-radius: 9px;
+  background: #fff; cursor: pointer;
+}
+
+/* ---------- line items ---------- */
+.ig-items { display: flex; flex-direction: column; gap: 10px; }
+
+.ig-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 104px 32px;
+  gap: 8px; align-items: center;
+}
+
+.ig-item-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 104px 32px;
+  gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink3);
+  padding: 0 2px;
+}
+.ig-item-head span:nth-child(2),
+.ig-item-head span:nth-child(3) { text-align: right; }
+
+.ig-item .ig-input { padding: 9px 11px; font-size: 14px; }
+.ig-item-num { text-align: right; }
+
+.ig-icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--ink3); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: color .15s ease, background-color .15s ease;
+}
+.ig-icon-btn:hover:not(:disabled) { color: #dc2626; background: #fef2f2; }
+.ig-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.ig-add-btn {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 38px; padding: 0 15px; border-radius: 9px;
+  border: 1px dashed var(--line2); background: transparent;
+  font-size: 14px; font-weight: 600; color: var(--ink2);
+  cursor: pointer; margin-top: 4px;
+}
+.ig-add-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+/* segmented control (tax mode / supply) */
+.ig-seg { display: inline-flex; background: var(--bg2); border-radius: 10px; padding: 3px; gap: 3px; }
+.ig-seg button {
+  border: 0; background: transparent; cursor: pointer;
+  padding: 7px 13px; border-radius: 8px;
+  font-size: 13.5px; font-weight: 600; color: var(--ink2);
+  transition: background-color .15s ease, color .15s ease;
+}
+.ig-seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* ---------- preview side ---------- */
+.ig-preview { position: sticky; top: 92px; min-width: 0; }
+
+.ig-actions {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+
+.ig-sheet-scroll {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg2);
+  padding: 20px;
+  max-height: calc(100vh - 210px);
+  overflow: auto;
+}
+
+.ig-saved {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #15803d; font-weight: 600;
+}
+
+/* history */
+.ig-history { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ig-history-h {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink3);
+}
+.ig-hist-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 13px; background: #fff;
+  font-size: 13.5px; cursor: pointer; text-align: left; width: 100%;
+}
+.ig-hist-item:hover { border-color: var(--accent); }
+.ig-hist-meta { color: var(--ink3); font-size: 12.5px; }
+
+/* =========================================================
+   The invoice sheet — white, A4-proportioned, print-ready
+   ========================================================= */
+.igd {
+  --igd-brand: #3b82f6;
+  background: #fff;
+  color: #18181b;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  padding: 34px 32px;
+  border-radius: 10px;
+  box-shadow: 0 2px 14px rgba(0,0,0,.07);
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.igd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.igd-head-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.igd-logo { max-height: 46px; max-width: 150px; object-fit: contain; }
+.igd-biz { font-size: 17px; font-weight: 700; color: #18181b; overflow-wrap: anywhere; }
+
+.igd-head-meta { text-align: right; flex: none; }
+.igd-doc-title {
+  font-size: 23px; font-weight: 700; margin: 0;
+  color: var(--igd-brand); letter-spacing: -0.015em;
+}
+.igd-doc-no { font-size: 13px; color: #71717a; font-family: var(--mono); }
+
+.igd-rule { height: 2px; background: var(--igd-brand); opacity: .85; margin: 16px 0 20px; border-radius: 2px; }
+
+.igd-parties {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px; margin-bottom: 24px;
+}
+.igd-party { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.igd-party-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; color: #a1a1aa; margin-bottom: 3px;
+}
+.igd-party-name { font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.igd-party-line { color: #52525b; font-size: 12.5px; overflow-wrap: anywhere; }
+.igd-party-tax { font-family: var(--mono); font-size: 11.5px; }
+.igd-ph { color: #d4d4d8; font-style: normal; }
+
+.igd-kv { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: #52525b; }
+.igd-kv b { font-weight: 600; color: #3f3f46; }
+
+/* items table */
+.igd-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+.igd-table thead th {
+  background: #f4f4f5;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #52525b;
+  padding: 9px 10px; text-align: left;
+  border-bottom: 1px solid #e4e4e7;
+}
+.igd-table tbody td {
+  padding: 10px; font-size: 12.5px;
+  border-bottom: 1px solid #f4f4f5;
+  vertical-align: top;
+}
+.igd-c-idx { width: 34px; color: #a1a1aa; }
+.igd-c-num { text-align: right; white-space: nowrap; }
+.igd-c-amt { font-weight: 600; }
+.igd-c-desc { overflow-wrap: anywhere; white-space: pre-wrap; }
+.igd-empty { text-align: center; color: #a1a1aa; padding: 22px 0 !important; }
+
+/* totals */
+.igd-totals-wrap { display: flex; justify-content: flex-end; }
+.igd-totals { width: min(300px, 100%); display: flex; flex-direction: column; gap: 7px; }
+.igd-t-row { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; }
+.igd-t-row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.igd-t-muted { color: #71717a; font-size: 12.5px; }
+.igd-t-grand {
+  margin-top: 6px; padding-top: 10px;
+  border-top: 1.5px solid #e4e4e7;
+  font-size: 16px; font-weight: 700; color: var(--igd-brand);
+}
+
+.igd-words {
+  margin: 18px 0 0; font-size: 12.5px; color: #3f3f46;
+  background: #fafafa; border-left: 2.5px solid var(--igd-brand);
+  padding: 9px 12px; border-radius: 0 6px 6px 0;
+}
+.igd-words b { font-weight: 600; }
+
+.igd-foot-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 20px; margin-top: 24px;
+  padding-top: 18px; border-top: 1px solid #f4f4f5;
+}
+.igd-block { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: #52525b; min-width: 0; }
+.igd-block-h {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; color: #a1a1aa; margin-bottom: 3px;
+}
+.igd-prewrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.igd-credit {
+  margin-top: 26px; padding-top: 14px;
+  border-top: 1px solid #f4f4f5;
+  text-align: center; font-size: 11.5px; color: #a1a1aa;
+}
+.igd-credit b { color: #71717a; font-weight: 600; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1080px) {
+  .ig-layout { grid-template-columns: 1fr; }
+  .ig-preview { position: static; }
+  .ig-sheet-scroll { max-height: none; padding: 14px; }
+}
+
+@media (max-width: 640px) {
+    .ig-panel { padding: 17px; }
+  .ig-grid { grid-template-columns: 1fr; }
+  .ig-item, .ig-item-head { grid-template-columns: minmax(0, 1fr) 56px 88px 30px; gap: 6px; }
+  .ig-actions .btn { flex: 1 1 100%; }
+  .igd { padding: 20px 16px; font-size: 12px; }
+  .igd-parties { grid-template-columns: 1fr; gap: 14px; }
+  .igd-head { flex-direction: column; }
+  .igd-head-meta { text-align: left; }
+  .igd-totals { width: 100%; }
+}
+
+/* =========================================================
+   Print
+
+   The printed sheet is a separate copy portalled to <body> (see
+   App.jsx). Printing then means dropping every other child of
+   <body> outright — no `visibility` tricks, which leave empty layout boxes
+   behind and pad the job out with blank pages, and no absolute positioning,
+   which would anchor to the sticky preview column rather than the page.
+   ========================================================= */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+/* The print copy never shows on screen. */
+.ig-print-portal { display: none; }
+
+@media print {
+  html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Drop the app entirely — #root, the open-in-app banner, alert hosts — so
+     only the invoice generates pages. */
+  body > *:not(.ig-print-portal) { display: none !important; }
+
+  .ig-print-portal {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .igd {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    font-size: 10.5pt;
+  }
+
+  /* Keep colour in the print/PDF output rather than letting the browser
+     strip backgrounds to save ink. Safari still honours its own
+     "Print backgrounds" checkbox, so nothing legible may depend on one. */
+  .igd, .igd * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Never split a line item, the totals block or a footer note across pages. */
+  .igd-table tbody tr,
+  .igd-totals,
+  .igd-words,
+  .igd-block { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Repeat the column headers when items run past one page. */
+  .igd-table thead { display: table-header-group; }
+}
